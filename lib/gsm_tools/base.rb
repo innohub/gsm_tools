@@ -2,6 +2,8 @@
 #
 # Unicode/GSM Reference: http://unicode.org/Public/MAPPINGS/ETSI/GSM0338.TXT
 
+require 'iconv'
+
 module GSMTools
   NL = "\n"
   CR = "\r"
@@ -138,7 +140,7 @@ module GSMTools
     0x7d, 'ñ'.ord,
     0x7e, 'ü'.ord,
     0x7f, 'à'.ord,
-    [0x1B, 0x0A], 0x000C,
+    #[0x1B, 0x0A], 0x000C, # Removed for now, Need to figure out how to Regex match this character
     [0x1B, 0x14], '^'.ord,
     [0x1B, 0x28], '{'.ord,
     [0x1B, 0x29], '}'.ord,
@@ -160,7 +162,55 @@ module GSMTools
     end
 
     def to_gsm str
-      str.unpack('U*').collect { |utf8_char| @@uni_to_gsm[utf8_char] }.flatten.pack('c*')
+      if self.is_gsm_7bit?(str)
+        str.unpack('U*').collect { |utf8_char| @@uni_to_gsm[utf8_char] }.flatten.pack('c*')
+      else
+        Iconv.iconv('UCS-2', 'UTF-8', str).first
+      end
+    end
+
+    def gsm_string_counter str
+      hash = {}
+
+      if self.is_gsm_7bit?(str)
+        hash = { :length => 0, :segments => 1, :remaining_length_for_segment => 160 }
+        gsm_str = self.to_gsm(str)
+        hash[:length] = gsm_str.length
+
+        case gsm_str.length
+        when 0..160
+          hash[:segments] = 1
+          hash[:remaining_length_for_segment] = 160 - gsm_str.length
+        when 161..306
+          hash[:segments] = 2
+          hash[:remaining_length_for_segment] = 306 - gsm_str.length
+        when 307..459
+          hash[:segments] = 3
+          hash[:remaining_length_for_segment] = 459 - gsm_str.length
+        else
+          hash = { :invalid => true }
+        end
+
+      else
+        hash = { :length => 0, :segments => 1, :remaining_length_for_segment => 70 }
+        hash[:length] = str.length
+
+        case str.length
+        when 0..70
+          hash[:segments] = 1
+          hash[:remaining_length_for_segment] = 70 - str.length
+        when 71..134
+          hash[:segments] = 2
+          hash[:remaining_length_for_segment] = 134 - str.length
+        when 135..201
+          hash[:segments] = 3
+          hash[:remaining_length_for_segment] = 201 - str.length
+        else
+          hash = { :invalid => true }
+        end
+      end
+
+      return hash
     end
 
     def gsm_to_s gsm
