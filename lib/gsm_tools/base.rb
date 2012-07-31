@@ -173,41 +173,52 @@ module GSMTools
       hash = {}
 
       if self.is_gsm_7bit?(str)
-        hash = { :length => 0, :segments => 1, :remaining_length_for_segment => 160 }
-        gsm_str = self.to_gsm(str)
-        hash[:length] = gsm_str.length
-
-        case gsm_str.length
-        when 0..160
-          hash[:segments] = 1
-          hash[:remaining_length_for_segment] = 160 - gsm_str.length
-        when 161..306
-          hash[:segments] = 2
-          hash[:remaining_length_for_segment] = 306 - gsm_str.length
-        when 307..459
-          hash[:segments] = 3
-          hash[:remaining_length_for_segment] = 459 - gsm_str.length
-        else
-          hash = { :invalid => true }
-        end
-
+        hash = gsm_string_7bit_counter str
       else
-        hash = { :length => 0, :segments => 1, :remaining_length_for_segment => 70 }
-        hash[:length] = str.length
+        hash = gsm_string_unicode_counter str
+      end
 
-        case str.length
-        when 0..70
-          hash[:segments] = 1
-          hash[:remaining_length_for_segment] = 70 - str.length
-        when 71..134
-          hash[:segments] = 2
-          hash[:remaining_length_for_segment] = 134 - str.length
-        when 135..201
-          hash[:segments] = 3
-          hash[:remaining_length_for_segment] = 201 - str.length
-        else
-          hash = { :invalid => true }
-        end
+      return hash
+    end
+
+    def gsm_string_7bit_counter str
+      hash = { :length => 0, :segments => 1, :remaining_length_for_segment => 160 }
+      gsm_str = self.to_gsm(str)
+      hash[:length] = gsm_str.length
+
+      case gsm_str.length
+      when 0..160
+        hash[:segments] = 1
+        hash[:remaining_length_for_segment] = 160 - gsm_str.length
+      when 161..306
+        hash[:segments] = 2
+        hash[:remaining_length_for_segment] = 306 - gsm_str.length
+      when 307..459
+        hash[:segments] = 3
+        hash[:remaining_length_for_segment] = 459 - gsm_str.length
+      else
+        hash = { :invalid => true }
+      end
+
+      return hash
+    end
+
+    def gsm_string_unicode_counter str
+      hash = { :length => 0, :segments => 1, :remaining_length_for_segment => 70 }
+      hash[:length] = str.length
+
+      case str.length
+      when 0..70
+        hash[:segments] = 1
+        hash[:remaining_length_for_segment] = 70 - str.length
+      when 71..134
+        hash[:segments] = 2
+        hash[:remaining_length_for_segment] = 134 - str.length
+      when 135..201
+        hash[:segments] = 3
+        hash[:remaining_length_for_segment] = 201 - str.length
+      else
+        hash = { :invalid => true }
       end
 
       return hash
